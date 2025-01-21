@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+// import "./styles.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,7 +20,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        <title>Your App Title</title>
+        {/* 其他头部内容 */}
+      </head>
+      <body style={{ fontFamily: 'ZCOOL KuaiLe , sans-serif' }}>
         {children}
       </body>
     </html>

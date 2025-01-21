@@ -11,8 +11,15 @@ const ResultsPage = () => {
   const imageUrl = searchParams.get('imageUrl');
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-white p-6 rounded shadow-md max-w-lg w-full flex flex-col md:flex-row gap-4">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: "url('/images/result.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="bg-white bg-opacity-80 p-6 rounded shadow-md max-w-lg w-full flex flex-col md:flex-row gap-4">
         {/* 图片展示部分 */}
         <div className="flex-shrink-0 w-full md:w-1/3 flex justify-center">
           {imageUrl ? (
@@ -32,10 +39,6 @@ const ResultsPage = () => {
           <p className="mb-4">
             <strong>故事内容:</strong> {story || '未提供故事内容'}
           </p>
-        </div>
-
-        {/* 音频播放器展示部分 */}
-        <div className="flex-shrink-0 w-full md:w-1/4">
           {audioUrl ? (
             <audio controls className="w-full">
               <source src={audioUrl} type="audio/mp3" />

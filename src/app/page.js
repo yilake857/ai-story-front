@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation'
 
 export default function Page() {
@@ -12,17 +12,51 @@ export default function Page() {
     characterChoice: "",
   });
 
+  const [charCount, setCharCount] = useState(0);
+  const [isOptionsVisible, setIsOptionsVisible] = useState(false);
 
   const router = useRouter(); // 在客户端渲染时使用 useRouter
+
+  // 为每个 Dropdown 创建独立的 isOpen 状态
+  const [isAudioRoleOpen, setIsAudioRoleOpen] = useState(false);
+  const [isStoryTypeOpen, setIsStoryTypeOpen] = useState(false);
+  const [isImageTypeOpen, setIsImageTypeOpen] = useState(false);
+  const [isAgeGroupOpen, setIsAgeGroupOpen] = useState(false);
+  const [isGenreOpen, setIsGenreOpen] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [abortController, setAbortController] = useState(null); // 新增状态
 
   const handleInputChange = (field, value) => {
     setStoryDetails((prevDetails) => ({
       ...prevDetails,
       [field]: value,
     }));
+
+    if (field === "storyContent") {
+      setCharCount(value.length);
+    }
   };
-  
+
   const handleSubmit = async () => {
+    if (isLoading) {
+      abortController.abort(); // 中断请求
+      setIsLoading(false);
+      return;
+    }
+
+    if (!storyDetails.storyContent.trim()) {
+      setErrorMessage("内容不能为空");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsLoading(true);
+
+    const controller = new AbortController();
+    setAbortController(controller);
+
     try {
       const response = await fetch("http://localhost:8010/story", {
         method: "POST",
@@ -37,143 +71,177 @@ export default function Page() {
           character_choice: storyDetails.characterChoice,
         }),
         credentials: 'include',
+        signal: controller.signal, // 传递信号
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to send story details: ${response.statusText}, Error: ${errorText}`);
+        throw new Error(`服务器错误: ${errorText}`);
       }
 
       const data = await response.json();
-      // 你需要将 `pathname` 和 `query` 合并为一个完整的 URL
-      // const data = {
-      //   story: "这是一个神奇的冒险故事。",
-      //   audio_url: "https://example.com/audio/story.mp3",
-      //   image_url: "https://example.com/images/story-image.jpg",
-      // };
       const targetUrl = `/result?story=${encodeURIComponent(data.story)}&audioUrl=${encodeURIComponent(data.audio_url)}&imageUrl=${encodeURIComponent(data.image_url)}`;
       router.push(targetUrl);
-      
+
     } catch (error) {
-      console.error(error);
-      alert(`An error occurred: ${error.message}`);
+      if (error.name === 'AbortError') {
+        console.log('Request was aborted');
+      } else {
+        console.error(error);
+        setErrorMessage(`服务器错误: ${error.message}`);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleTextareaClick = () => {
+    setIsOptionsVisible(true);
+  };
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{
-        backgroundImage: "url('/images/background.png')",
-        backgroundSize: "cover",
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "center",
-        height: "100vh", // Ensure the entire page height is covered
-        width: "100vw",  // Ensure the entire page width is covered
-      }}
-    >
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center w-full">
-        <div className="bg-white p-10 shadow-lg rounded-lg max-w-md w-full">
-          <header className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">故事生成系统</h1>
-            <p className="text-sm text-gray-500 mt-2">Crafting Stories for Children Using AI</p>
-          </header>
-  
-          <main>
-            <table className="table-auto w-full text-left border-collapse border border-gray-300">
-              <tbody>
-                {/* Story Content */}
-                <tr className="border-b border-gray-200">
-                  <td className="p-4">
-                    <label className="block text-gray-700 font-medium mb-1">Story Content</label>
-                    <textarea
-                      placeholder="Describe the story..."
-                      className="border border-gray-300 rounded-md p-2 w-full focus:ring focus:ring-blue-300"
-                      value={storyDetails.storyContent}
-                      onChange={(e) => handleInputChange("storyContent", e.target.value)}
-                    />
-                  </td>
-                </tr>
-  
-                {/* Audio Role */}
-                <tr className="border-b border-gray-200">
-                  <td className="p-4">
-                    <label className="block text-gray-700 font-medium mb-1">Audio Role</label>
-                    <select
-                      value={storyDetails.characterChoice}
-                      onChange={(e) => handleInputChange("characterChoice", e.target.value)}
-                      className="border border-gray-300 rounded-md p-2 w-full focus:ring focus:ring-blue-300"
-                    >
-                      <option value="">Select an audio role</option>
-                      <option value="youxiaoxun">Youxiaoxun</option>
-                      <option value="role2">Role 2</option>
-                      <option value="role3">Role 3</option>
-                    </select>
-                  </td>
-                </tr>
-  
-                {/* Story Type */}
-                <tr className="border-b border-gray-200">
-                  <td className="p-4">
-                    <label className="block text-gray-700 font-medium mb-1">Story Type</label>
-                    <select
-                      value={storyDetails.storyType}
-                      onChange={(e) => handleInputChange("storyType", e.target.value)}
-                      className="border border-gray-300 rounded-md p-2 w-full focus:ring focus:ring-blue-300"
-                    >
-                      <option value="">Select a story type</option>
-                      <option value="冒险">冒险</option>
-                      <option value="奇幻">奇幻</option>
-                      <option value="悬疑">悬疑</option>
-                    </select>
-                  </td>
-                </tr>
-  
-                {/* Image Type */}
-                <tr className="border-b border-gray-200">
-                  <td className="p-4">
-                    <label className="block text-gray-700 font-medium mb-1">Image Type</label>
-                    <select
-                      value={storyDetails.imageType}
-                      onChange={(e) => handleInputChange("imageType", e.target.value)}
-                      className="border border-gray-300 rounded-md p-2 w-full focus:ring focus:ring-blue-300"
-                    >
-                      <option value="">Select an image type</option>
-                      <option value="卡通风格">卡通风格</option>
-                      <option value="现实风格">现实风格</option>
-                      <option value="抽象风格">抽象风格</option>
-                    </select>
-                  </td>
-                </tr>
-  
-                {/* Age Group */}
-                <tr className="border-b border-gray-200">
-                  <td className="p-4">
-                    <label className="block text-gray-700 font-medium mb-1">Age Group</label>
-                    <select
-                      value={storyDetails.childAgeGroup}
-                      onChange={(e) => handleInputChange("childAgeGroup", e.target.value)}
-                      className="border border-gray-300 rounded-md p-2 w-full focus:ring focus:ring-blue-300"
-                    >
-                      <option value="">Select an age group</option>
-                      <option value="10-15岁">10-15岁</option>
-                      <option value="15-20岁">15-20岁</option>
-                      <option value="20岁以上">20岁以上</option>
-                    </select>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-  
-            <button
-              onClick={handleSubmit}
-              className="bg-blue-500 text-white mt-6 px-6 py-2 rounded-md w-full hover:bg-blue-600 transition duration-300"
-            >
-              Submit
-            </button>
-          </main>
+    <div>
+      <section>
+        <div className="relative bg-cover bg-center h-screen flex items-center justify-center" style={{ backgroundImage: "url('/images/background.png')" }}>
+          <div className="absolute left-1/2 transform -translate-x-1/2 text-center text-black" style={{ top: '15%' }}>
+            <h1 className="md:text-6xl text-3xl mb-2 ZCOOLKuaiLe">AI创意故事生成器</h1>
+            <h2 className="!font-alegreya t-shadow text-xl md:text-2xl text-zinc-800 whitespace-nowrap">Fostering Imaginations: Crafting Stories using AI</h2>
+          </div>
         </div>
-      </div>
+
+        <div className="absolute w-3/4 h-auto left-1/2 transform -translate-x-1/2 text-center text-black" style={{ top: '40%' }}>
+          <section className="w-full h-full space-y-6 p-0 shadow-lg bg-white rounded-lg">
+            {/* Story Content */}
+            <div className="mt-2 bg-white rounded-lg p-6">
+              <form className="flex flex-col md:flex-row justify-between gap-3 items-center" data-gtm-form-interact-id="0">
+                <textarea
+                  placeholder="Write me a story about..."
+                  className="prompt-input"
+                  value={storyDetails.storyContent}
+                  onChange={(e) => handleInputChange("storyContent", e.target.value)}
+                  onFocus={handleTextareaClick}
+                  data-gtm-form-interact-field-id="0"
+                />
+                {storyDetails.storyContent && (
+                  <div className="text-gray-700">
+                    {charCount}/500
+                  </div>
+                )}
+              </form>
+            </div>
+
+            <div className="max-h-max border-y overflow-y-scroll bg-white transition-all duration-500 ease-in-out ">
+              {/* 选项始终可见 */}
+              {isOptionsVisible && (
+                <>
+                  {/* Audio Role */}
+                  <Dropdown
+                    label="Audio Role"
+                    isOpen={isAudioRoleOpen}
+                    selectedOption={storyDetails.characterChoice}
+                    toggleOpen={() => setIsAudioRoleOpen(!isAudioRoleOpen)}
+                    options={["youxiaozhi", "youxiaoxun", "youxiaoqin"]}
+                    onSelect={(option) => handleInputChange("characterChoice", option)}
+                  />
+
+                  {/* Story Type */}
+                  <Dropdown
+                    label="Story Type"
+                    isOpen={isStoryTypeOpen}
+                    selectedOption={storyDetails.storyType}
+                    toggleOpen={() => setIsStoryTypeOpen(!isStoryTypeOpen)}
+                    options={["冒险", "奇幻", "悬疑"]}
+                    onSelect={(option) => handleInputChange("storyType", option)}
+                  />
+
+                  {/* Image Type */}
+                  <Dropdown
+                    label="Image Type"
+                    isOpen={isImageTypeOpen}
+                    selectedOption={storyDetails.imageType}
+                    toggleOpen={() => setIsImageTypeOpen(!isImageTypeOpen)}
+                    options={["卡通风格", "现实风格", "抽象风格"]}
+                    onSelect={(option) => handleInputChange("imageType", option)}
+                  />
+
+                  {/* Age Group */}
+                  <Dropdown
+                    label="Age Group"
+                    isOpen={isAgeGroupOpen}
+                    selectedOption={storyDetails.childAgeGroup}
+                    toggleOpen={() => setIsAgeGroupOpen(!isAgeGroupOpen)}
+                    options={["10-15岁", "15-20岁", "20岁以上"]}
+                    onSelect={(option) => handleInputChange("childAgeGroup", option)}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center justify-center h-auto">
+              <button
+                onClick={handleSubmit}
+                className={`flex items-center justify-center px-6 py-2 bg-orange-600 text-white rounded-full shadow-lg ${isLoading ? 'opacity-50' : ''}`}
+              >
+                {isLoading ? (
+                  <span className="loader"></span>
+                ) : (
+                  <>
+                    <span className="mr-2">✨</span>
+                    生成故事
+                  </>
+                )}
+              </button>
+              {errorMessage && <div className="text-red-500 mt-2">{errorMessage}</div>}
+            </div>
+
+          </section>
+        </div>
+      </section>
     </div>
-  );  
+  );
+}
+
+function Dropdown({ label, isOpen, selectedOption, toggleOpen, options, onSelect }) {
+  // 默认选中第一个选项
+  useEffect(() => {
+    if (!selectedOption && options.length > 0) {
+      onSelect(options[0]);
+    }
+  }, [options, selectedOption, onSelect]);
+
+  return (
+    <div>
+      <div
+        className={`flex items-center w-full px-4 py-3 border border-gray-200 cursor-pointer ${isOpen ? 'bg-gray-300' : 'bg-gray-200'}`}
+        onClick={toggleOpen}
+        style={{ fontFamily: 'Geist' }}
+      >
+        <span className={`font-bold text-lg ${isOpen ? 'text-orange-600' : ''}`}>{label}:</span>
+        {selectedOption && (
+          <span className="px-2 py-1 bg-orange-300 rounded-full ml-1 text-orange-600">
+            {selectedOption}
+          </span>
+        )}
+        <span className="ml-auto cursor-pointer">
+          {isOpen ? '▼' : '▶'}
+        </span>
+      </div>
+      {isOpen && (
+        <div className="relative w-full bg-white border border-gray-200" style={{ fontFamily: 'YourFontName' }}>
+          <div className="flex flex-wrap">
+            {options.map(option => (
+              <div
+                key={option}
+                onClick={() => onSelect(option)}
+                className={`px-4 py-2 m-1 cursor-pointer ${selectedOption === option ? 'bg-orange-300 font-bold text-orange-600' : 'hover:bg-gray-100'
+                  }`}
+              >
+                {option}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
