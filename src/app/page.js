@@ -41,7 +41,7 @@ export default function Page() {
 
   const handleSubmit = async () => {
     if (isLoading) {
-      abortController.abort(); // 中断请求
+      abortController.abort();
       setIsLoading(false);
       return;
     }
@@ -71,7 +71,7 @@ export default function Page() {
           character_choice: storyDetails.characterChoice,
         }),
         credentials: 'include',
-        signal: controller.signal, // 传递信号
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -80,9 +80,8 @@ export default function Page() {
       }
 
       const data = await response.json();
-      const targetUrl = `/result?story=${encodeURIComponent(data.story)}&audioUrl=${encodeURIComponent(data.audio_url)}&imageUrl=${encodeURIComponent(data.image_url)}`;
-      router.push(targetUrl);
-
+      localStorage.setItem('storyData', JSON.stringify(data)); // 存储数据到 localStorage
+      router.push('/result'); // 只传递路径
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('Request was aborted');
