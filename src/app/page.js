@@ -64,6 +64,7 @@ export default function Page() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          story_title: storyDetails.storyTitle,
           story_content: storyDetails.storyContent,
           story_type: storyDetails.storyType,
           child_age_group: storyDetails.childAgeGroup,
@@ -149,7 +150,7 @@ export default function Page() {
                     isOpen={isStoryTypeOpen}
                     selectedOption={storyDetails.storyType}
                     toggleOpen={() => setIsStoryTypeOpen(!isStoryTypeOpen)}
-                    options={["冒险", "奇幻", "悬疑"]}
+                    options={["文学","现实的小说","历史小说","神话","诗歌","传记","教育","冒险","科幻小说","恐怖","寓言", "幻想", "神秘","史诗",]}
                     onSelect={(option) => handleInputChange("storyType", option)}
                   />
 
@@ -159,7 +160,7 @@ export default function Page() {
                     isOpen={isImageTypeOpen}
                     selectedOption={storyDetails.imageType}
                     toggleOpen={() => setIsImageTypeOpen(!isImageTypeOpen)}
-                    options={["卡通风格", "现实风格", "抽象风格"]}
+                    options={["简单的","逼真的","丰富多彩的","卡通", "故事书", "数码插图","文学","漫画书","摄影",]}
                     onSelect={(option) => handleInputChange("imageType", option)}
                   />
 
@@ -169,7 +170,7 @@ export default function Page() {
                     isOpen={isAgeGroupOpen}
                     selectedOption={storyDetails.childAgeGroup}
                     toggleOpen={() => setIsAgeGroupOpen(!isAgeGroupOpen)}
-                    options={["10-15岁", "15-20岁", "20岁以上"]}
+                    options={["0-5岁","5-15岁", "15-20岁", "20-25岁","25-35岁","35-45岁","45-55岁","55及以上"]}
                     onSelect={(option) => handleInputChange("childAgeGroup", option)}
                   />
                 </>
